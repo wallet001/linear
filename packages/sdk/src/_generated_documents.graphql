@@ -66,6 +66,8 @@ fragment Comment on Comment {
   projectUpdate {
     id
   }
+  # The text that this comment references. Only defined for inline comments.
+  quotedText
   # The time at which the entity was archived. Null if the entity has not been archived.
   archivedAt
   # The time at which the entity was created.
@@ -1354,6 +1356,8 @@ fragment UserAccount on UserAccount {
   email
   # The user's name.
   name
+  # Whether not to send email auth links in the email auth emails.
+  authTokenLinkDisabled
 }
 
 # A user notification subscription.
@@ -1418,6 +1422,8 @@ fragment AuthUser on AuthUser {
   email
   # The user's full name.
   name
+  # User account id the user belongs to.
+  userAccountId
   # Whether the user is active.
   active
   id
@@ -1655,6 +1661,13 @@ fragment Integration on Integration {
   creator {
     id
   }
+}
+
+# An invitation to the organization that has been sent via email.
+fragment AuthOrganizationInvite on AuthOrganizationInvite {
+  __typename
+  # The unique identifier of the entity.
+  id
 }
 
 # An invitation to the organization that has been sent via email.
@@ -1965,6 +1978,8 @@ fragment AuthOrganization on AuthOrganization {
   allowedAuthServices
   # Previously used URL keys for the organization (last 3 are kept and redirected).
   previousUrlKeys
+  # The email domain or URL key for the organization.
+  serviceId
   # The organization's logo URL.
   logoUrl
   # The organization's name.
@@ -3319,23 +3334,6 @@ fragment AuthApiKeyPayload on AuthApiKeyPayload {
   success
 }
 
-fragment AuthCreateOrJoinOrganizationResponse on AuthCreateOrJoinOrganizationResponse {
-  __typename
-  authOrganization {
-    ...AuthOrganization
-  }
-  authUser {
-    ...AuthUser
-  }
-  grantDomainAccess
-  organization {
-    ...AuthOrganization
-  }
-  user {
-    ...AuthUser
-  }
-}
-
 fragment AuthIntegration on AuthIntegration {
   __typename
   # The unique identifier of the entity.
@@ -3389,21 +3387,29 @@ fragment AuthOrganizationDomain on AuthOrganizationDomain {
   __typename
   # The unique identifier of the entity.
   id
+  claimed
+  name
+  organizationId
+  verified
 }
 
 fragment AuthResolverResponse on AuthResolverResponse {
   __typename
+  # Application token.
+  token
   # Email for the authenticated account.
   email
   # ID of the organization last accessed by the user.
   lastUsedOrganizationId
-  # JWT token for authentication of the account.
-  token
-  # List of organizations this user account is part of but are currently locked because of the current auth service.
+  # List of active users that belong to the user account.
+  users {
+    ...AuthUser
+  }
+  # List of organization available to this user account but locked due to the current auth method.
   lockedOrganizations {
     ...AuthOrganization
   }
-  # Organizations this account has access to, but is not yet a member.
+  # List of organizations allowing this user account to join automatically.
   availableOrganizations {
     ...AuthOrganization
   }
@@ -3411,10 +3417,6 @@ fragment AuthResolverResponse on AuthResolverResponse {
   allowDomainAccess
   # User account ID.
   id
-  # Users belonging to this account.
-  users {
-    ...AuthUser
-  }
 }
 
 fragment AuthSuccessPayload on AuthSuccessPayload {
@@ -3665,6 +3667,18 @@ fragment DocumentSearchResultConnection on DocumentSearchResultConnection {
   pageInfo {
     ...PageInfo
   }
+}
+
+fragment EmailIntakeAddressPayload on EmailIntakeAddressPayload {
+  __typename
+  # The email address that was created or updated.
+  emailIntakeAddress {
+    ...EmailIntakeAddress
+  }
+  # The identifier of the last sync operation.
+  lastSyncId
+  # Whether the operation was successful.
+  success
 }
 
 fragment EmailUnsubscribePayload on EmailUnsubscribePayload {
@@ -5778,7 +5792,7 @@ query documents(
 }
 # A specific emoji.
 query emoji(
-  # The identifier of the emoji to retrieve.
+  # The identifier or the name of the emoji to retrieve.
   $id: String!
 ) {
   emoji(id: $id) {
@@ -9060,6 +9074,44 @@ mutation updateDocument(
 ) {
   documentUpdate(id: $id, input: $input) {
     ...DocumentPayload
+  }
+}
+# Creates a new email intake address.
+mutation createEmailIntakeAddress(
+  # The email intake address object to create.
+  $input: EmailIntakeAddressCreateInput!
+) {
+  emailIntakeAddressCreate(input: $input) {
+    ...EmailIntakeAddressPayload
+  }
+}
+# Deletes an email intake address object.
+mutation deleteEmailIntakeAddress(
+  # The identifier of the email intake address to delete.
+  $id: String!
+) {
+  emailIntakeAddressDelete(id: $id) {
+    ...DeletePayload
+  }
+}
+# Rotates an existing email intake address.
+mutation emailIntakeAddressRotate(
+  # The identifier of the email intake address.
+  $id: String!
+) {
+  emailIntakeAddressRotate(id: $id) {
+    ...EmailIntakeAddressPayload
+  }
+}
+# Updates an existing email intake address.
+mutation updateEmailIntakeAddress(
+  # The identifier of the email intake address.
+  $id: String!
+  # The properties of the email intake address to update.
+  $input: EmailIntakeAddressUpdateInput!
+) {
+  emailIntakeAddressUpdate(id: $id, input: $input) {
+    ...EmailIntakeAddressPayload
   }
 }
 # Authenticates a user account via email and authentication token.

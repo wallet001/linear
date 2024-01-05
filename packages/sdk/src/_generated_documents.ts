@@ -27,7 +27,7 @@ export type ActorBot = {
   __typename?: "ActorBot";
   /** A url pointing to the avatar representing this bot. */
   avatarUrl?: Maybe<Scalars["String"]>;
-  id: Scalars["ID"];
+  id?: Maybe<Scalars["ID"]>;
   /** The display name of the bot. */
   name?: Maybe<Scalars["String"]>;
   /** The sub type of the bot. */
@@ -410,15 +410,6 @@ export type AuthApiKeyPayload = {
   success: Scalars["Boolean"];
 };
 
-export type AuthCreateOrJoinOrganizationResponse = {
-  __typename?: "AuthCreateOrJoinOrganizationResponse";
-  authOrganization: AuthOrganization;
-  authUser: AuthUser;
-  grantDomainAccess?: Maybe<Scalars["Boolean"]>;
-  organization: AuthOrganization;
-  user: AuthUser;
-};
-
 export type AuthIntegration = {
   __typename?: "AuthIntegration";
   /** The unique identifier of the entity. */
@@ -532,6 +523,8 @@ export type AuthOrganization = {
   samlSettings?: Maybe<Scalars["JSONObject"]>;
   /** Whether SCIM provisioning is enabled for organization. */
   scimEnabled: Scalars["Boolean"];
+  /** The email domain or URL key for the organization. */
+  serviceId: Scalars["String"];
   /** The organization's unique URL key. */
   urlKey: Scalars["String"];
   userCount: Scalars["Float"];
@@ -539,6 +532,18 @@ export type AuthOrganization = {
 
 export type AuthOrganizationDomain = {
   __typename?: "AuthOrganizationDomain";
+  authType: OrganizationDomainAuthType;
+  claimed?: Maybe<Scalars["Boolean"]>;
+  /** The unique identifier of the entity. */
+  id: Scalars["ID"];
+  name: Scalars["String"];
+  organizationId: Scalars["String"];
+  verified: Scalars["Boolean"];
+};
+
+/** An invitation to the organization that has been sent via email. */
+export type AuthOrganizationInvite = {
+  __typename?: "AuthOrganizationInvite";
   /** The unique identifier of the entity. */
   id: Scalars["ID"];
 };
@@ -547,19 +552,22 @@ export type AuthResolverResponse = {
   __typename?: "AuthResolverResponse";
   /** Should the signup flow allow access for the domain. */
   allowDomainAccess?: Maybe<Scalars["Boolean"]>;
-  /** Organizations this account has access to, but is not yet a member. */
+  /** List of organizations allowing this user account to join automatically. */
   availableOrganizations?: Maybe<Array<AuthOrganization>>;
   /** Email for the authenticated account. */
-  email?: Maybe<Scalars["String"]>;
+  email: Scalars["String"];
   /** User account ID. */
   id: Scalars["String"];
   /** ID of the organization last accessed by the user. */
   lastUsedOrganizationId?: Maybe<Scalars["String"]>;
-  /** List of organizations this user account is part of but are currently locked because of the current auth service. */
+  /** List of organization available to this user account but locked due to the current auth method. */
   lockedOrganizations?: Maybe<Array<AuthOrganization>>;
-  /** JWT token for authentication of the account. */
+  /**
+   * Application token.
+   * @deprecated Deprecated and not used anymore. Never populated.
+   */
   token?: Maybe<Scalars["String"]>;
-  /** Users belonging to this account. */
+  /** List of active users that belong to the user account. */
   users: Array<AuthUser>;
 };
 
@@ -585,6 +593,8 @@ export type AuthUser = {
   name: Scalars["String"];
   /** Organization the user belongs to. */
   organization: AuthOrganization;
+  /** User account id the user belongs to. */
+  userAccountId: Scalars["String"];
 };
 
 /** User authentication session. */
@@ -736,6 +746,8 @@ export type Comment = Node & {
   parent?: Maybe<Comment>;
   /** The project update that the comment is associated with. */
   projectUpdate?: Maybe<ProjectUpdate>;
+  /** The text that this comment references. Only defined for inline comments. */
+  quotedText?: Maybe<Scalars["String"]>;
   /** Emoji reaction summary, grouped by emoji type */
   reactionData: Scalars["JSONObject"];
   /** The time the resolvingUser resolved the thread. */
@@ -829,6 +841,8 @@ export type CommentCreateInput = {
   parentId?: Maybe<Scalars["String"]>;
   /** The prject update to associate the comment with. */
   projectUpdateId?: Maybe<Scalars["String"]>;
+  /** The text that this comment references. Only defined for inline comments. */
+  quotedText?: Maybe<Scalars["String"]>;
 };
 
 export type CommentEdge = {
@@ -877,6 +891,8 @@ export type CommentUpdateInput = {
   body?: Maybe<Scalars["String"]>;
   /** The comment content as a Prosemirror document. */
   bodyData?: Maybe<Scalars["JSON"]>;
+  /** The text that this comment references. Only defined for inline comments. */
+  quotedText?: Maybe<Scalars["String"]>;
   /** [INTERNAL] The child comment that resolves this thread. */
   resolvingCommentId?: Maybe<Scalars["String"]>;
   /** [INTERNAL] The user who resolved this thread. */
@@ -1747,6 +1763,28 @@ export type EmailIntakeAddress = Node & {
   updatedAt: Scalars["DateTime"];
 };
 
+export type EmailIntakeAddressCreateInput = {
+  /** The identifier in UUID v4 format. If none is provided, the backend will generate one. */
+  id?: Maybe<Scalars["String"]>;
+  /** The identifier or key of the team this email address will intake issues for. */
+  teamId: Scalars["String"];
+};
+
+export type EmailIntakeAddressPayload = {
+  __typename?: "EmailIntakeAddressPayload";
+  /** The email address that was created or updated. */
+  emailIntakeAddress: EmailIntakeAddress;
+  /** The identifier of the last sync operation. */
+  lastSyncId: Scalars["Float"];
+  /** Whether the operation was successful. */
+  success: Scalars["Boolean"];
+};
+
+export type EmailIntakeAddressUpdateInput = {
+  /** Whether the email address is currently enabled. If set to false, the email address will be disabled and no longer accept incoming emails. */
+  enabled: Scalars["Boolean"];
+};
+
 export type EmailSubscribeInput = {
   /** [INTERNAL] Email to subscribe. */
   email: Scalars["String"];
@@ -2322,7 +2360,7 @@ export type GoogleSheetsSettingsInput = {
 export type GoogleUserAccountAuthInput = {
   /** Code returned from Google's OAuth flow. */
   code: Scalars["String"];
-  /** An optional invite link for an organization. */
+  /** An optional invite link for an organization used to populate available organizations. */
   inviteLink?: Maybe<Scalars["String"]>;
   /** The URI to redirect the user to. */
   redirectUri?: Maybe<Scalars["String"]>;
@@ -4114,6 +4152,8 @@ export type JiraSettingsInput = {
 export type JiraUpdateInput = {
   /** The id of the integration to update */
   id: Scalars["String"];
+  /** Whether to refresh Jira metadata for the integration */
+  updateMetadata?: Maybe<Scalars["Boolean"]>;
   /** Whether to refresh Jira Projects for the integration */
   updateProjects?: Maybe<Scalars["Boolean"]>;
 };
@@ -4253,6 +4293,14 @@ export type Mutation = {
   documentDelete: DeletePayload;
   /** Updates a document. */
   documentUpdate: DocumentPayload;
+  /** Creates a new email intake address. */
+  emailIntakeAddressCreate: EmailIntakeAddressPayload;
+  /** Deletes an email intake address object. */
+  emailIntakeAddressDelete: DeletePayload;
+  /** Rotates an existing email intake address. */
+  emailIntakeAddressRotate: EmailIntakeAddressPayload;
+  /** Updates an existing email intake address. */
+  emailIntakeAddressUpdate: EmailIntakeAddressPayload;
   /** [INTERNAL] Subscribes the email to the newsletter. */
   emailSubscribe: EmailSubscribePayload;
   /** Authenticates a user account via email and authentication token. */
@@ -4818,6 +4866,23 @@ export type MutationDocumentDeleteArgs = {
 export type MutationDocumentUpdateArgs = {
   id: Scalars["String"];
   input: DocumentUpdateInput;
+};
+
+export type MutationEmailIntakeAddressCreateArgs = {
+  input: EmailIntakeAddressCreateInput;
+};
+
+export type MutationEmailIntakeAddressDeleteArgs = {
+  id: Scalars["String"];
+};
+
+export type MutationEmailIntakeAddressRotateArgs = {
+  id: Scalars["String"];
+};
+
+export type MutationEmailIntakeAddressUpdateArgs = {
+  id: Scalars["String"];
+  input: EmailIntakeAddressUpdateInput;
 };
 
 export type MutationEmailSubscribeArgs = {
@@ -9981,7 +10046,9 @@ export type TeamUpdateInput = {
   cycleCooldownTime?: Maybe<Scalars["Int"]>;
   /** The duration of each cycle in weeks. */
   cycleDuration?: Maybe<Scalars["Int"]>;
-  /** Whether the first cycle should start in the current or the next week. */
+  /** The date to begin cycles on. */
+  cycleEnabledStartDate?: Maybe<Scalars["DateTime"]>;
+  /** [DEPRECATED] Whether the first cycle should start in the current or the next week. */
   cycleEnabledStartWeek?: Maybe<Scalars["String"]>;
   /** Auto assign completed issues to current active cycle setting. */
   cycleIssueAutoAssignCompleted?: Maybe<Scalars["Boolean"]>;
@@ -10398,6 +10465,8 @@ export type UserAccount = {
   __typename?: "UserAccount";
   /** The time at which the model was archived. */
   archivedAt?: Maybe<Scalars["DateTime"]>;
+  /** Whether not to send email auth links in the email auth emails. */
+  authTokenLinkDisabled: Scalars["Boolean"];
   /** The time at which the model was created. */
   createdAt: Scalars["DateTime"];
   /** The user's email address. */
@@ -11343,7 +11412,16 @@ export type ActorBotFragment = { __typename: "ActorBot" } & Pick<
 
 export type CommentFragment = { __typename: "Comment" } & Pick<
   Comment,
-  "url" | "reactionData" | "body" | "updatedAt" | "archivedAt" | "createdAt" | "resolvedAt" | "editedAt" | "id"
+  | "url"
+  | "reactionData"
+  | "body"
+  | "updatedAt"
+  | "quotedText"
+  | "archivedAt"
+  | "createdAt"
+  | "resolvedAt"
+  | "editedAt"
+  | "id"
 > & {
     botActor?: Maybe<{ __typename?: "ActorBot" } & ActorBotFragment>;
     resolvingComment?: Maybe<{ __typename?: "Comment" } & Pick<Comment, "id">>;
@@ -11838,7 +11916,7 @@ export type ProjectUpdateFragment = { __typename: "ProjectUpdate" } & Pick<
 
 export type UserAccountFragment = { __typename: "UserAccount" } & Pick<
   UserAccount,
-  "service" | "id" | "archivedAt" | "createdAt" | "updatedAt" | "email" | "name"
+  "service" | "id" | "archivedAt" | "createdAt" | "updatedAt" | "email" | "name" | "authTokenLinkDisabled"
 >;
 
 export type UserNotificationSubscriptionFragment = { __typename: "UserNotificationSubscription" } & Pick<
@@ -11856,7 +11934,7 @@ export type UserNotificationSubscriptionFragment = { __typename: "UserNotificati
 
 export type AuthUserFragment = { __typename: "AuthUser" } & Pick<
   AuthUser,
-  "avatarUrl" | "displayName" | "email" | "name" | "active" | "id"
+  "avatarUrl" | "displayName" | "email" | "name" | "userAccountId" | "active" | "id"
 > & { organization: { __typename?: "AuthOrganization" } & AuthOrganizationFragment };
 
 export type UserFragment = { __typename: "User" } & Pick<
@@ -11944,6 +12022,11 @@ export type IntegrationFragment = { __typename: "Integration" } & Pick<
   Integration,
   "service" | "updatedAt" | "archivedAt" | "createdAt" | "id"
 > & { team?: Maybe<{ __typename?: "Team" } & Pick<Team, "id">>; creator: { __typename?: "User" } & Pick<User, "id"> };
+
+export type AuthOrganizationInviteFragment = { __typename: "AuthOrganizationInvite" } & Pick<
+  AuthOrganizationInvite,
+  "id"
+>;
 
 export type OrganizationInviteFragment = { __typename: "OrganizationInvite" } & Pick<
   OrganizationInvite,
@@ -12083,6 +12166,7 @@ export type AuthOrganizationFragment = { __typename: "AuthOrganization" } & Pick
   AuthOrganization,
   | "allowedAuthServices"
   | "previousUrlKeys"
+  | "serviceId"
   | "logoUrl"
   | "name"
   | "urlKey"
@@ -12700,15 +12784,6 @@ export type AuthApiKeyPayloadFragment = { __typename: "AuthApiKeyPayload" } & Pi
     authApiKey: { __typename?: "AuthApiKey" } & AuthApiKeyFragment;
   };
 
-export type AuthCreateOrJoinOrganizationResponseFragment = {
-  __typename: "AuthCreateOrJoinOrganizationResponse";
-} & Pick<AuthCreateOrJoinOrganizationResponse, "grantDomainAccess"> & {
-    authOrganization: { __typename?: "AuthOrganization" } & AuthOrganizationFragment;
-    authUser: { __typename?: "AuthUser" } & AuthUserFragment;
-    organization: { __typename?: "AuthOrganization" } & AuthOrganizationFragment;
-    user: { __typename?: "AuthUser" } & AuthUserFragment;
-  };
-
 export type AuthIntegrationFragment = { __typename: "AuthIntegration" } & Pick<AuthIntegration, "id">;
 
 export type AuthOauthClientFragment = { __typename: "AuthOauthClient" } & Pick<
@@ -12736,16 +12811,16 @@ export type AuthOauthClientWithTokensFragment = { __typename: "AuthOauthClientWi
 
 export type AuthOrganizationDomainFragment = { __typename: "AuthOrganizationDomain" } & Pick<
   AuthOrganizationDomain,
-  "id"
+  "id" | "claimed" | "name" | "organizationId" | "verified"
 >;
 
 export type AuthResolverResponseFragment = { __typename: "AuthResolverResponse" } & Pick<
   AuthResolverResponse,
-  "email" | "lastUsedOrganizationId" | "token" | "allowDomainAccess" | "id"
+  "token" | "email" | "lastUsedOrganizationId" | "allowDomainAccess" | "id"
 > & {
+    users: Array<{ __typename?: "AuthUser" } & AuthUserFragment>;
     lockedOrganizations?: Maybe<Array<{ __typename?: "AuthOrganization" } & AuthOrganizationFragment>>;
     availableOrganizations?: Maybe<Array<{ __typename?: "AuthOrganization" } & AuthOrganizationFragment>>;
-    users: Array<{ __typename?: "AuthUser" } & AuthUserFragment>;
   };
 
 export type AuthSuccessPayloadFragment = { __typename: "AuthSuccessPayload" } & Pick<AuthSuccessPayload, "success">;
@@ -12865,6 +12940,11 @@ export type DocumentSearchResultConnectionFragment = { __typename: "DocumentSear
   nodes: Array<{ __typename?: "DocumentSearchResult" } & DocumentSearchResultFragment>;
   pageInfo: { __typename?: "PageInfo" } & PageInfoFragment;
 };
+
+export type EmailIntakeAddressPayloadFragment = { __typename: "EmailIntakeAddressPayload" } & Pick<
+  EmailIntakeAddressPayload,
+  "lastSyncId" | "success"
+> & { emailIntakeAddress: { __typename?: "EmailIntakeAddress" } & EmailIntakeAddressFragment };
 
 export type EmailUnsubscribePayloadFragment = { __typename: "EmailUnsubscribePayload" } & Pick<
   EmailUnsubscribePayload,
@@ -16115,6 +16195,39 @@ export type UpdateDocumentMutation = { __typename?: "Mutation" } & {
   documentUpdate: { __typename?: "DocumentPayload" } & DocumentPayloadFragment;
 };
 
+export type CreateEmailIntakeAddressMutationVariables = Exact<{
+  input: EmailIntakeAddressCreateInput;
+}>;
+
+export type CreateEmailIntakeAddressMutation = { __typename?: "Mutation" } & {
+  emailIntakeAddressCreate: { __typename?: "EmailIntakeAddressPayload" } & EmailIntakeAddressPayloadFragment;
+};
+
+export type DeleteEmailIntakeAddressMutationVariables = Exact<{
+  id: Scalars["String"];
+}>;
+
+export type DeleteEmailIntakeAddressMutation = { __typename?: "Mutation" } & {
+  emailIntakeAddressDelete: { __typename?: "DeletePayload" } & DeletePayloadFragment;
+};
+
+export type EmailIntakeAddressRotateMutationVariables = Exact<{
+  id: Scalars["String"];
+}>;
+
+export type EmailIntakeAddressRotateMutation = { __typename?: "Mutation" } & {
+  emailIntakeAddressRotate: { __typename?: "EmailIntakeAddressPayload" } & EmailIntakeAddressPayloadFragment;
+};
+
+export type UpdateEmailIntakeAddressMutationVariables = Exact<{
+  id: Scalars["String"];
+  input: EmailIntakeAddressUpdateInput;
+}>;
+
+export type UpdateEmailIntakeAddressMutation = { __typename?: "Mutation" } & {
+  emailIntakeAddressUpdate: { __typename?: "EmailIntakeAddressPayload" } & EmailIntakeAddressPayloadFragment;
+};
+
 export type EmailTokenUserAccountAuthMutationVariables = Exact<{
   input: TokenUserAccountAuthInput;
 }>;
@@ -18751,6 +18864,7 @@ export const UserAccountFragmentDoc = {
           { kind: "Field", name: { kind: "Name", value: "updatedAt" } },
           { kind: "Field", name: { kind: "Name", value: "email" } },
           { kind: "Field", name: { kind: "Name", value: "name" } },
+          { kind: "Field", name: { kind: "Name", value: "authTokenLinkDisabled" } },
         ],
       },
     },
@@ -18834,44 +18948,23 @@ export const UserNotificationSubscriptionFragmentDoc = {
     },
   ],
 } as unknown as DocumentNode<UserNotificationSubscriptionFragment, unknown>;
-export const EmailIntakeAddressFragmentDoc = {
+export const AuthOrganizationInviteFragmentDoc = {
   kind: "Document",
   definitions: [
     {
       kind: "FragmentDefinition",
-      name: { kind: "Name", value: "EmailIntakeAddress" },
-      typeCondition: { kind: "NamedType", name: { kind: "Name", value: "EmailIntakeAddress" } },
+      name: { kind: "Name", value: "AuthOrganizationInvite" },
+      typeCondition: { kind: "NamedType", name: { kind: "Name", value: "AuthOrganizationInvite" } },
       selectionSet: {
         kind: "SelectionSet",
         selections: [
           { kind: "Field", name: { kind: "Name", value: "__typename" } },
-          { kind: "Field", name: { kind: "Name", value: "updatedAt" } },
-          {
-            kind: "Field",
-            name: { kind: "Name", value: "team" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [{ kind: "Field", name: { kind: "Name", value: "id" } }],
-            },
-          },
-          { kind: "Field", name: { kind: "Name", value: "archivedAt" } },
-          { kind: "Field", name: { kind: "Name", value: "createdAt" } },
           { kind: "Field", name: { kind: "Name", value: "id" } },
-          {
-            kind: "Field",
-            name: { kind: "Name", value: "creator" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [{ kind: "Field", name: { kind: "Name", value: "id" } }],
-            },
-          },
-          { kind: "Field", name: { kind: "Name", value: "address" } },
-          { kind: "Field", name: { kind: "Name", value: "enabled" } },
         ],
       },
     },
   ],
-} as unknown as DocumentNode<EmailIntakeAddressFragment, unknown>;
+} as unknown as DocumentNode<AuthOrganizationInviteFragment, unknown>;
 export const PaidSubscriptionFragmentDoc = {
   kind: "Document",
   definitions: [
@@ -20268,111 +20361,6 @@ export const AuthApiKeyPayloadFragmentDoc = {
     },
   ],
 } as unknown as DocumentNode<AuthApiKeyPayloadFragment, unknown>;
-export const AuthOrganizationFragmentDoc = {
-  kind: "Document",
-  definitions: [
-    {
-      kind: "FragmentDefinition",
-      name: { kind: "Name", value: "AuthOrganization" },
-      typeCondition: { kind: "NamedType", name: { kind: "Name", value: "AuthOrganization" } },
-      selectionSet: {
-        kind: "SelectionSet",
-        selections: [
-          { kind: "Field", name: { kind: "Name", value: "__typename" } },
-          { kind: "Field", name: { kind: "Name", value: "allowedAuthServices" } },
-          { kind: "Field", name: { kind: "Name", value: "previousUrlKeys" } },
-          { kind: "Field", name: { kind: "Name", value: "logoUrl" } },
-          { kind: "Field", name: { kind: "Name", value: "name" } },
-          { kind: "Field", name: { kind: "Name", value: "urlKey" } },
-          { kind: "Field", name: { kind: "Name", value: "deletionRequestedAt" } },
-          { kind: "Field", name: { kind: "Name", value: "id" } },
-          { kind: "Field", name: { kind: "Name", value: "samlEnabled" } },
-          { kind: "Field", name: { kind: "Name", value: "scimEnabled" } },
-          { kind: "Field", name: { kind: "Name", value: "userCount" } },
-        ],
-      },
-    },
-  ],
-} as unknown as DocumentNode<AuthOrganizationFragment, unknown>;
-export const AuthUserFragmentDoc = {
-  kind: "Document",
-  definitions: [
-    {
-      kind: "FragmentDefinition",
-      name: { kind: "Name", value: "AuthUser" },
-      typeCondition: { kind: "NamedType", name: { kind: "Name", value: "AuthUser" } },
-      selectionSet: {
-        kind: "SelectionSet",
-        selections: [
-          { kind: "Field", name: { kind: "Name", value: "__typename" } },
-          { kind: "Field", name: { kind: "Name", value: "avatarUrl" } },
-          {
-            kind: "Field",
-            name: { kind: "Name", value: "organization" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [{ kind: "FragmentSpread", name: { kind: "Name", value: "AuthOrganization" } }],
-            },
-          },
-          { kind: "Field", name: { kind: "Name", value: "displayName" } },
-          { kind: "Field", name: { kind: "Name", value: "email" } },
-          { kind: "Field", name: { kind: "Name", value: "name" } },
-          { kind: "Field", name: { kind: "Name", value: "active" } },
-          { kind: "Field", name: { kind: "Name", value: "id" } },
-        ],
-      },
-    },
-  ],
-} as unknown as DocumentNode<AuthUserFragment, unknown>;
-export const AuthCreateOrJoinOrganizationResponseFragmentDoc = {
-  kind: "Document",
-  definitions: [
-    {
-      kind: "FragmentDefinition",
-      name: { kind: "Name", value: "AuthCreateOrJoinOrganizationResponse" },
-      typeCondition: { kind: "NamedType", name: { kind: "Name", value: "AuthCreateOrJoinOrganizationResponse" } },
-      selectionSet: {
-        kind: "SelectionSet",
-        selections: [
-          { kind: "Field", name: { kind: "Name", value: "__typename" } },
-          {
-            kind: "Field",
-            name: { kind: "Name", value: "authOrganization" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [{ kind: "FragmentSpread", name: { kind: "Name", value: "AuthOrganization" } }],
-            },
-          },
-          {
-            kind: "Field",
-            name: { kind: "Name", value: "authUser" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [{ kind: "FragmentSpread", name: { kind: "Name", value: "AuthUser" } }],
-            },
-          },
-          { kind: "Field", name: { kind: "Name", value: "grantDomainAccess" } },
-          {
-            kind: "Field",
-            name: { kind: "Name", value: "organization" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [{ kind: "FragmentSpread", name: { kind: "Name", value: "AuthOrganization" } }],
-            },
-          },
-          {
-            kind: "Field",
-            name: { kind: "Name", value: "user" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [{ kind: "FragmentSpread", name: { kind: "Name", value: "AuthUser" } }],
-            },
-          },
-        ],
-      },
-    },
-  ],
-} as unknown as DocumentNode<AuthCreateOrJoinOrganizationResponseFragment, unknown>;
 export const AuthIntegrationFragmentDoc = {
   kind: "Document",
   definitions: [
@@ -20482,11 +20470,73 @@ export const AuthOrganizationDomainFragmentDoc = {
         selections: [
           { kind: "Field", name: { kind: "Name", value: "__typename" } },
           { kind: "Field", name: { kind: "Name", value: "id" } },
+          { kind: "Field", name: { kind: "Name", value: "claimed" } },
+          { kind: "Field", name: { kind: "Name", value: "name" } },
+          { kind: "Field", name: { kind: "Name", value: "organizationId" } },
+          { kind: "Field", name: { kind: "Name", value: "verified" } },
         ],
       },
     },
   ],
 } as unknown as DocumentNode<AuthOrganizationDomainFragment, unknown>;
+export const AuthOrganizationFragmentDoc = {
+  kind: "Document",
+  definitions: [
+    {
+      kind: "FragmentDefinition",
+      name: { kind: "Name", value: "AuthOrganization" },
+      typeCondition: { kind: "NamedType", name: { kind: "Name", value: "AuthOrganization" } },
+      selectionSet: {
+        kind: "SelectionSet",
+        selections: [
+          { kind: "Field", name: { kind: "Name", value: "__typename" } },
+          { kind: "Field", name: { kind: "Name", value: "allowedAuthServices" } },
+          { kind: "Field", name: { kind: "Name", value: "previousUrlKeys" } },
+          { kind: "Field", name: { kind: "Name", value: "serviceId" } },
+          { kind: "Field", name: { kind: "Name", value: "logoUrl" } },
+          { kind: "Field", name: { kind: "Name", value: "name" } },
+          { kind: "Field", name: { kind: "Name", value: "urlKey" } },
+          { kind: "Field", name: { kind: "Name", value: "deletionRequestedAt" } },
+          { kind: "Field", name: { kind: "Name", value: "id" } },
+          { kind: "Field", name: { kind: "Name", value: "samlEnabled" } },
+          { kind: "Field", name: { kind: "Name", value: "scimEnabled" } },
+          { kind: "Field", name: { kind: "Name", value: "userCount" } },
+        ],
+      },
+    },
+  ],
+} as unknown as DocumentNode<AuthOrganizationFragment, unknown>;
+export const AuthUserFragmentDoc = {
+  kind: "Document",
+  definitions: [
+    {
+      kind: "FragmentDefinition",
+      name: { kind: "Name", value: "AuthUser" },
+      typeCondition: { kind: "NamedType", name: { kind: "Name", value: "AuthUser" } },
+      selectionSet: {
+        kind: "SelectionSet",
+        selections: [
+          { kind: "Field", name: { kind: "Name", value: "__typename" } },
+          { kind: "Field", name: { kind: "Name", value: "avatarUrl" } },
+          {
+            kind: "Field",
+            name: { kind: "Name", value: "organization" },
+            selectionSet: {
+              kind: "SelectionSet",
+              selections: [{ kind: "FragmentSpread", name: { kind: "Name", value: "AuthOrganization" } }],
+            },
+          },
+          { kind: "Field", name: { kind: "Name", value: "displayName" } },
+          { kind: "Field", name: { kind: "Name", value: "email" } },
+          { kind: "Field", name: { kind: "Name", value: "name" } },
+          { kind: "Field", name: { kind: "Name", value: "userAccountId" } },
+          { kind: "Field", name: { kind: "Name", value: "active" } },
+          { kind: "Field", name: { kind: "Name", value: "id" } },
+        ],
+      },
+    },
+  ],
+} as unknown as DocumentNode<AuthUserFragment, unknown>;
 export const AuthResolverResponseFragmentDoc = {
   kind: "Document",
   definitions: [
@@ -20498,9 +20548,17 @@ export const AuthResolverResponseFragmentDoc = {
         kind: "SelectionSet",
         selections: [
           { kind: "Field", name: { kind: "Name", value: "__typename" } },
+          { kind: "Field", name: { kind: "Name", value: "token" } },
           { kind: "Field", name: { kind: "Name", value: "email" } },
           { kind: "Field", name: { kind: "Name", value: "lastUsedOrganizationId" } },
-          { kind: "Field", name: { kind: "Name", value: "token" } },
+          {
+            kind: "Field",
+            name: { kind: "Name", value: "users" },
+            selectionSet: {
+              kind: "SelectionSet",
+              selections: [{ kind: "FragmentSpread", name: { kind: "Name", value: "AuthUser" } }],
+            },
+          },
           {
             kind: "Field",
             name: { kind: "Name", value: "lockedOrganizations" },
@@ -20519,14 +20577,6 @@ export const AuthResolverResponseFragmentDoc = {
           },
           { kind: "Field", name: { kind: "Name", value: "allowDomainAccess" } },
           { kind: "Field", name: { kind: "Name", value: "id" } },
-          {
-            kind: "Field",
-            name: { kind: "Name", value: "users" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [{ kind: "FragmentSpread", name: { kind: "Name", value: "AuthUser" } }],
-            },
-          },
         ],
       },
     },
@@ -20633,6 +20683,7 @@ export const CommentFragmentDoc = {
               selections: [{ kind: "Field", name: { kind: "Name", value: "id" } }],
             },
           },
+          { kind: "Field", name: { kind: "Name", value: "quotedText" } },
           { kind: "Field", name: { kind: "Name", value: "archivedAt" } },
           { kind: "Field", name: { kind: "Name", value: "createdAt" } },
           { kind: "Field", name: { kind: "Name", value: "resolvedAt" } },
@@ -21408,6 +21459,70 @@ export const DocumentSearchResultConnectionFragmentDoc = {
     },
   ],
 } as unknown as DocumentNode<DocumentSearchResultConnectionFragment, unknown>;
+export const EmailIntakeAddressFragmentDoc = {
+  kind: "Document",
+  definitions: [
+    {
+      kind: "FragmentDefinition",
+      name: { kind: "Name", value: "EmailIntakeAddress" },
+      typeCondition: { kind: "NamedType", name: { kind: "Name", value: "EmailIntakeAddress" } },
+      selectionSet: {
+        kind: "SelectionSet",
+        selections: [
+          { kind: "Field", name: { kind: "Name", value: "__typename" } },
+          { kind: "Field", name: { kind: "Name", value: "updatedAt" } },
+          {
+            kind: "Field",
+            name: { kind: "Name", value: "team" },
+            selectionSet: {
+              kind: "SelectionSet",
+              selections: [{ kind: "Field", name: { kind: "Name", value: "id" } }],
+            },
+          },
+          { kind: "Field", name: { kind: "Name", value: "archivedAt" } },
+          { kind: "Field", name: { kind: "Name", value: "createdAt" } },
+          { kind: "Field", name: { kind: "Name", value: "id" } },
+          {
+            kind: "Field",
+            name: { kind: "Name", value: "creator" },
+            selectionSet: {
+              kind: "SelectionSet",
+              selections: [{ kind: "Field", name: { kind: "Name", value: "id" } }],
+            },
+          },
+          { kind: "Field", name: { kind: "Name", value: "address" } },
+          { kind: "Field", name: { kind: "Name", value: "enabled" } },
+        ],
+      },
+    },
+  ],
+} as unknown as DocumentNode<EmailIntakeAddressFragment, unknown>;
+export const EmailIntakeAddressPayloadFragmentDoc = {
+  kind: "Document",
+  definitions: [
+    {
+      kind: "FragmentDefinition",
+      name: { kind: "Name", value: "EmailIntakeAddressPayload" },
+      typeCondition: { kind: "NamedType", name: { kind: "Name", value: "EmailIntakeAddressPayload" } },
+      selectionSet: {
+        kind: "SelectionSet",
+        selections: [
+          { kind: "Field", name: { kind: "Name", value: "__typename" } },
+          {
+            kind: "Field",
+            name: { kind: "Name", value: "emailIntakeAddress" },
+            selectionSet: {
+              kind: "SelectionSet",
+              selections: [{ kind: "FragmentSpread", name: { kind: "Name", value: "EmailIntakeAddress" } }],
+            },
+          },
+          { kind: "Field", name: { kind: "Name", value: "lastSyncId" } },
+          { kind: "Field", name: { kind: "Name", value: "success" } },
+        ],
+      },
+    },
+  ],
+} as unknown as DocumentNode<EmailIntakeAddressPayloadFragment, unknown>;
 export const EmailUnsubscribePayloadFragmentDoc = {
   kind: "Document",
   definitions: [
@@ -27882,8 +27997,8 @@ export const AvailableUsersDocument = {
       },
     },
     ...AuthResolverResponseFragmentDoc.definitions,
-    ...AuthOrganizationFragmentDoc.definitions,
     ...AuthUserFragmentDoc.definitions,
+    ...AuthOrganizationFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<AvailableUsersQuery, AvailableUsersQueryVariables>;
 export const CommentDocument = {
@@ -41555,6 +41670,177 @@ export const UpdateDocumentDocument = {
     ...DocumentPayloadFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<UpdateDocumentMutation, UpdateDocumentMutationVariables>;
+export const CreateEmailIntakeAddressDocument = {
+  kind: "Document",
+  definitions: [
+    {
+      kind: "OperationDefinition",
+      operation: "mutation",
+      name: { kind: "Name", value: "createEmailIntakeAddress" },
+      variableDefinitions: [
+        {
+          kind: "VariableDefinition",
+          variable: { kind: "Variable", name: { kind: "Name", value: "input" } },
+          type: {
+            kind: "NonNullType",
+            type: { kind: "NamedType", name: { kind: "Name", value: "EmailIntakeAddressCreateInput" } },
+          },
+        },
+      ],
+      selectionSet: {
+        kind: "SelectionSet",
+        selections: [
+          {
+            kind: "Field",
+            name: { kind: "Name", value: "emailIntakeAddressCreate" },
+            arguments: [
+              {
+                kind: "Argument",
+                name: { kind: "Name", value: "input" },
+                value: { kind: "Variable", name: { kind: "Name", value: "input" } },
+              },
+            ],
+            selectionSet: {
+              kind: "SelectionSet",
+              selections: [{ kind: "FragmentSpread", name: { kind: "Name", value: "EmailIntakeAddressPayload" } }],
+            },
+          },
+        ],
+      },
+    },
+    ...EmailIntakeAddressPayloadFragmentDoc.definitions,
+    ...EmailIntakeAddressFragmentDoc.definitions,
+  ],
+} as unknown as DocumentNode<CreateEmailIntakeAddressMutation, CreateEmailIntakeAddressMutationVariables>;
+export const DeleteEmailIntakeAddressDocument = {
+  kind: "Document",
+  definitions: [
+    {
+      kind: "OperationDefinition",
+      operation: "mutation",
+      name: { kind: "Name", value: "deleteEmailIntakeAddress" },
+      variableDefinitions: [
+        {
+          kind: "VariableDefinition",
+          variable: { kind: "Variable", name: { kind: "Name", value: "id" } },
+          type: { kind: "NonNullType", type: { kind: "NamedType", name: { kind: "Name", value: "String" } } },
+        },
+      ],
+      selectionSet: {
+        kind: "SelectionSet",
+        selections: [
+          {
+            kind: "Field",
+            name: { kind: "Name", value: "emailIntakeAddressDelete" },
+            arguments: [
+              {
+                kind: "Argument",
+                name: { kind: "Name", value: "id" },
+                value: { kind: "Variable", name: { kind: "Name", value: "id" } },
+              },
+            ],
+            selectionSet: {
+              kind: "SelectionSet",
+              selections: [{ kind: "FragmentSpread", name: { kind: "Name", value: "DeletePayload" } }],
+            },
+          },
+        ],
+      },
+    },
+    ...DeletePayloadFragmentDoc.definitions,
+  ],
+} as unknown as DocumentNode<DeleteEmailIntakeAddressMutation, DeleteEmailIntakeAddressMutationVariables>;
+export const EmailIntakeAddressRotateDocument = {
+  kind: "Document",
+  definitions: [
+    {
+      kind: "OperationDefinition",
+      operation: "mutation",
+      name: { kind: "Name", value: "emailIntakeAddressRotate" },
+      variableDefinitions: [
+        {
+          kind: "VariableDefinition",
+          variable: { kind: "Variable", name: { kind: "Name", value: "id" } },
+          type: { kind: "NonNullType", type: { kind: "NamedType", name: { kind: "Name", value: "String" } } },
+        },
+      ],
+      selectionSet: {
+        kind: "SelectionSet",
+        selections: [
+          {
+            kind: "Field",
+            name: { kind: "Name", value: "emailIntakeAddressRotate" },
+            arguments: [
+              {
+                kind: "Argument",
+                name: { kind: "Name", value: "id" },
+                value: { kind: "Variable", name: { kind: "Name", value: "id" } },
+              },
+            ],
+            selectionSet: {
+              kind: "SelectionSet",
+              selections: [{ kind: "FragmentSpread", name: { kind: "Name", value: "EmailIntakeAddressPayload" } }],
+            },
+          },
+        ],
+      },
+    },
+    ...EmailIntakeAddressPayloadFragmentDoc.definitions,
+    ...EmailIntakeAddressFragmentDoc.definitions,
+  ],
+} as unknown as DocumentNode<EmailIntakeAddressRotateMutation, EmailIntakeAddressRotateMutationVariables>;
+export const UpdateEmailIntakeAddressDocument = {
+  kind: "Document",
+  definitions: [
+    {
+      kind: "OperationDefinition",
+      operation: "mutation",
+      name: { kind: "Name", value: "updateEmailIntakeAddress" },
+      variableDefinitions: [
+        {
+          kind: "VariableDefinition",
+          variable: { kind: "Variable", name: { kind: "Name", value: "id" } },
+          type: { kind: "NonNullType", type: { kind: "NamedType", name: { kind: "Name", value: "String" } } },
+        },
+        {
+          kind: "VariableDefinition",
+          variable: { kind: "Variable", name: { kind: "Name", value: "input" } },
+          type: {
+            kind: "NonNullType",
+            type: { kind: "NamedType", name: { kind: "Name", value: "EmailIntakeAddressUpdateInput" } },
+          },
+        },
+      ],
+      selectionSet: {
+        kind: "SelectionSet",
+        selections: [
+          {
+            kind: "Field",
+            name: { kind: "Name", value: "emailIntakeAddressUpdate" },
+            arguments: [
+              {
+                kind: "Argument",
+                name: { kind: "Name", value: "id" },
+                value: { kind: "Variable", name: { kind: "Name", value: "id" } },
+              },
+              {
+                kind: "Argument",
+                name: { kind: "Name", value: "input" },
+                value: { kind: "Variable", name: { kind: "Name", value: "input" } },
+              },
+            ],
+            selectionSet: {
+              kind: "SelectionSet",
+              selections: [{ kind: "FragmentSpread", name: { kind: "Name", value: "EmailIntakeAddressPayload" } }],
+            },
+          },
+        ],
+      },
+    },
+    ...EmailIntakeAddressPayloadFragmentDoc.definitions,
+    ...EmailIntakeAddressFragmentDoc.definitions,
+  ],
+} as unknown as DocumentNode<UpdateEmailIntakeAddressMutation, UpdateEmailIntakeAddressMutationVariables>;
 export const EmailTokenUserAccountAuthDocument = {
   kind: "Document",
   definitions: [
@@ -41594,8 +41880,8 @@ export const EmailTokenUserAccountAuthDocument = {
       },
     },
     ...AuthResolverResponseFragmentDoc.definitions,
-    ...AuthOrganizationFragmentDoc.definitions,
     ...AuthUserFragmentDoc.definitions,
+    ...AuthOrganizationFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<EmailTokenUserAccountAuthMutation, EmailTokenUserAccountAuthMutationVariables>;
 export const EmailUnsubscribeDocument = {
@@ -42139,8 +42425,8 @@ export const GoogleUserAccountAuthDocument = {
       },
     },
     ...AuthResolverResponseFragmentDoc.definitions,
-    ...AuthOrganizationFragmentDoc.definitions,
     ...AuthUserFragmentDoc.definitions,
+    ...AuthOrganizationFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<GoogleUserAccountAuthMutation, GoogleUserAccountAuthMutationVariables>;
 export const ImageUploadFromUrlDocument = {
@@ -47521,8 +47807,8 @@ export const SamlTokenUserAccountAuthDocument = {
       },
     },
     ...AuthResolverResponseFragmentDoc.definitions,
-    ...AuthOrganizationFragmentDoc.definitions,
     ...AuthUserFragmentDoc.definitions,
+    ...AuthOrganizationFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<SamlTokenUserAccountAuthMutation, SamlTokenUserAccountAuthMutationVariables>;
 export const CreateTeamDocument = {

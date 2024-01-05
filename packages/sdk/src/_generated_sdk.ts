@@ -172,7 +172,7 @@ export class ActorBot extends Request {
   public constructor(request: LinearRequest, data: L.ActorBotFragment) {
     super(request);
     this.avatarUrl = data.avatarUrl ?? undefined;
-    this.id = data.id;
+    this.id = data.id ?? undefined;
     this.name = data.name ?? undefined;
     this.subType = data.subType ?? undefined;
     this.type = data.type;
@@ -181,7 +181,7 @@ export class ActorBot extends Request {
 
   /** A url pointing to the avatar representing this bot. */
   public avatarUrl?: string;
-  public id: string;
+  public id?: string;
   /** The display name of the bot. */
   public name?: string;
   /** The sub type of the bot. */
@@ -673,28 +673,6 @@ export class AuthApiKeyPayload extends Request {
   public authApiKey: AuthApiKey;
 }
 /**
- * AuthCreateOrJoinOrganizationResponse model
- *
- * @param request - function to call the graphql client
- * @param data - L.AuthCreateOrJoinOrganizationResponseFragment response data
- */
-export class AuthCreateOrJoinOrganizationResponse extends Request {
-  public constructor(request: LinearRequest, data: L.AuthCreateOrJoinOrganizationResponseFragment) {
-    super(request);
-    this.grantDomainAccess = data.grantDomainAccess ?? undefined;
-    this.authOrganization = new AuthOrganization(request, data.authOrganization);
-    this.authUser = new AuthUser(request, data.authUser);
-    this.organization = new AuthOrganization(request, data.organization);
-    this.user = new AuthUser(request, data.user);
-  }
-
-  public grantDomainAccess?: boolean;
-  public authOrganization: AuthOrganization;
-  public authUser: AuthUser;
-  public organization: AuthOrganization;
-  public user: AuthUser;
-}
-/**
  * AuthIntegration model
  *
  * @param request - function to call the graphql client
@@ -860,6 +838,7 @@ export class AuthOrganization extends Request {
     this.previousUrlKeys = data.previousUrlKeys;
     this.samlEnabled = data.samlEnabled;
     this.scimEnabled = data.scimEnabled;
+    this.serviceId = data.serviceId;
     this.urlKey = data.urlKey;
     this.userCount = data.userCount;
   }
@@ -880,6 +859,8 @@ export class AuthOrganization extends Request {
   public samlEnabled: boolean;
   /** Whether SCIM provisioning is enabled for organization. */
   public scimEnabled: boolean;
+  /** The email domain or URL key for the organization. */
+  public serviceId: string;
   /** The organization's unique URL key. */
   public urlKey: string;
   public userCount: number;
@@ -892,6 +873,29 @@ export class AuthOrganization extends Request {
  */
 export class AuthOrganizationDomain extends Request {
   public constructor(request: LinearRequest, data: L.AuthOrganizationDomainFragment) {
+    super(request);
+    this.claimed = data.claimed ?? undefined;
+    this.id = data.id;
+    this.name = data.name;
+    this.organizationId = data.organizationId;
+    this.verified = data.verified;
+  }
+
+  public claimed?: boolean;
+  /** The unique identifier of the entity. */
+  public id: string;
+  public name: string;
+  public organizationId: string;
+  public verified: boolean;
+}
+/**
+ * An invitation to the organization that has been sent via email.
+ *
+ * @param request - function to call the graphql client
+ * @param data - L.AuthOrganizationInviteFragment response data
+ */
+export class AuthOrganizationInvite extends Request {
+  public constructor(request: LinearRequest, data: L.AuthOrganizationInviteFragment) {
     super(request);
     this.id = data.id;
   }
@@ -909,7 +913,7 @@ export class AuthResolverResponse extends Request {
   public constructor(request: LinearRequest, data: L.AuthResolverResponseFragment) {
     super(request);
     this.allowDomainAccess = data.allowDomainAccess ?? undefined;
-    this.email = data.email ?? undefined;
+    this.email = data.email;
     this.id = data.id;
     this.lastUsedOrganizationId = data.lastUsedOrganizationId ?? undefined;
     this.token = data.token ?? undefined;
@@ -925,18 +929,18 @@ export class AuthResolverResponse extends Request {
   /** Should the signup flow allow access for the domain. */
   public allowDomainAccess?: boolean;
   /** Email for the authenticated account. */
-  public email?: string;
+  public email: string;
   /** User account ID. */
   public id: string;
   /** ID of the organization last accessed by the user. */
   public lastUsedOrganizationId?: string;
-  /** JWT token for authentication of the account. */
+  /** Application token. */
   public token?: string;
-  /** Organizations this account has access to, but is not yet a member. */
+  /** List of organizations allowing this user account to join automatically. */
   public availableOrganizations?: AuthOrganization[];
-  /** List of organizations this user account is part of but are currently locked because of the current auth service. */
+  /** List of organization available to this user account but locked due to the current auth method. */
   public lockedOrganizations?: AuthOrganization[];
-  /** Users belonging to this account. */
+  /** List of active users that belong to the user account. */
   public users: AuthUser[];
 }
 /**
@@ -969,6 +973,7 @@ export class AuthUser extends Request {
     this.email = data.email;
     this.id = data.id;
     this.name = data.name;
+    this.userAccountId = data.userAccountId;
     this.organization = new AuthOrganization(request, data.organization);
   }
 
@@ -983,6 +988,8 @@ export class AuthUser extends Request {
   public id: string;
   /** The user's full name. */
   public name: string;
+  /** User account id the user belongs to. */
+  public userAccountId: string;
   /** Organization the user belongs to. */
   public organization: AuthOrganization;
 }
@@ -1149,6 +1156,7 @@ export class Comment extends Request {
     this.createdAt = parseDate(data.createdAt) ?? new Date();
     this.editedAt = parseDate(data.editedAt) ?? undefined;
     this.id = data.id;
+    this.quotedText = data.quotedText ?? undefined;
     this.reactionData = data.reactionData;
     this.resolvedAt = parseDate(data.resolvedAt) ?? undefined;
     this.updatedAt = parseDate(data.updatedAt) ?? new Date();
@@ -1173,6 +1181,8 @@ export class Comment extends Request {
   public editedAt?: Date;
   /** The unique identifier of the entity. */
   public id: string;
+  /** The text that this comment references. Only defined for inline comments. */
+  public quotedText?: string;
   /** Emoji reaction summary, grouped by emoji type */
   public reactionData: L.Scalars["JSONObject"];
   /** The time the resolvingUser resolved the thread. */
@@ -2345,6 +2355,40 @@ export class EmailIntakeAddress extends Request {
   public get team(): LinearFetch<Team> | undefined {
     return new TeamQuery(this._request).fetch(this._team.id);
   }
+
+  /** Creates a new email intake address. */
+  public create(input: L.EmailIntakeAddressCreateInput) {
+    return new CreateEmailIntakeAddressMutation(this._request).fetch(input);
+  }
+  /** Deletes an email intake address object. */
+  public delete() {
+    return new DeleteEmailIntakeAddressMutation(this._request).fetch(this.id);
+  }
+  /** Updates an existing email intake address. */
+  public update(input: L.EmailIntakeAddressUpdateInput) {
+    return new UpdateEmailIntakeAddressMutation(this._request).fetch(this.id, input);
+  }
+}
+/**
+ * EmailIntakeAddressPayload model
+ *
+ * @param request - function to call the graphql client
+ * @param data - L.EmailIntakeAddressPayloadFragment response data
+ */
+export class EmailIntakeAddressPayload extends Request {
+  public constructor(request: LinearRequest, data: L.EmailIntakeAddressPayloadFragment) {
+    super(request);
+    this.lastSyncId = data.lastSyncId;
+    this.success = data.success;
+    this.emailIntakeAddress = new EmailIntakeAddress(request, data.emailIntakeAddress);
+  }
+
+  /** The identifier of the last sync operation. */
+  public lastSyncId: number;
+  /** Whether the operation was successful. */
+  public success: boolean;
+  /** The email address that was created or updated. */
+  public emailIntakeAddress: EmailIntakeAddress;
 }
 /**
  * EmailUnsubscribePayload model
@@ -8829,6 +8873,7 @@ export class UserAccount extends Request {
   public constructor(request: LinearRequest, data: L.UserAccountFragment) {
     super(request);
     this.archivedAt = parseDate(data.archivedAt) ?? undefined;
+    this.authTokenLinkDisabled = data.authTokenLinkDisabled;
     this.createdAt = parseDate(data.createdAt) ?? new Date();
     this.email = data.email;
     this.id = data.id;
@@ -8839,6 +8884,8 @@ export class UserAccount extends Request {
 
   /** The time at which the model was archived. */
   public archivedAt?: Date;
+  /** Whether not to send email auth links in the email auth emails. */
+  public authTokenLinkDisabled: boolean;
   /** The time at which the model was created. */
   public createdAt: Date;
   /** The user's email address. */
@@ -13659,6 +13706,124 @@ export class UpdateDocumentMutation extends Request {
     const data = response.documentUpdate;
 
     return new DocumentPayload(this._request, data);
+  }
+}
+
+/**
+ * A fetchable CreateEmailIntakeAddress Mutation
+ *
+ * @param request - function to call the graphql client
+ */
+export class CreateEmailIntakeAddressMutation extends Request {
+  public constructor(request: LinearRequest) {
+    super(request);
+  }
+
+  /**
+   * Call the CreateEmailIntakeAddress mutation and return a EmailIntakeAddressPayload
+   *
+   * @param input - required input to pass to createEmailIntakeAddress
+   * @returns parsed response from CreateEmailIntakeAddressMutation
+   */
+  public async fetch(input: L.EmailIntakeAddressCreateInput): LinearFetch<EmailIntakeAddressPayload> {
+    const response = await this._request<
+      L.CreateEmailIntakeAddressMutation,
+      L.CreateEmailIntakeAddressMutationVariables
+    >(L.CreateEmailIntakeAddressDocument, {
+      input,
+    });
+    const data = response.emailIntakeAddressCreate;
+
+    return new EmailIntakeAddressPayload(this._request, data);
+  }
+}
+
+/**
+ * A fetchable DeleteEmailIntakeAddress Mutation
+ *
+ * @param request - function to call the graphql client
+ */
+export class DeleteEmailIntakeAddressMutation extends Request {
+  public constructor(request: LinearRequest) {
+    super(request);
+  }
+
+  /**
+   * Call the DeleteEmailIntakeAddress mutation and return a DeletePayload
+   *
+   * @param id - required id to pass to deleteEmailIntakeAddress
+   * @returns parsed response from DeleteEmailIntakeAddressMutation
+   */
+  public async fetch(id: string): LinearFetch<DeletePayload> {
+    const response = await this._request<
+      L.DeleteEmailIntakeAddressMutation,
+      L.DeleteEmailIntakeAddressMutationVariables
+    >(L.DeleteEmailIntakeAddressDocument, {
+      id,
+    });
+    const data = response.emailIntakeAddressDelete;
+
+    return new DeletePayload(this._request, data);
+  }
+}
+
+/**
+ * A fetchable EmailIntakeAddressRotate Mutation
+ *
+ * @param request - function to call the graphql client
+ */
+export class EmailIntakeAddressRotateMutation extends Request {
+  public constructor(request: LinearRequest) {
+    super(request);
+  }
+
+  /**
+   * Call the EmailIntakeAddressRotate mutation and return a EmailIntakeAddressPayload
+   *
+   * @param id - required id to pass to emailIntakeAddressRotate
+   * @returns parsed response from EmailIntakeAddressRotateMutation
+   */
+  public async fetch(id: string): LinearFetch<EmailIntakeAddressPayload> {
+    const response = await this._request<
+      L.EmailIntakeAddressRotateMutation,
+      L.EmailIntakeAddressRotateMutationVariables
+    >(L.EmailIntakeAddressRotateDocument, {
+      id,
+    });
+    const data = response.emailIntakeAddressRotate;
+
+    return new EmailIntakeAddressPayload(this._request, data);
+  }
+}
+
+/**
+ * A fetchable UpdateEmailIntakeAddress Mutation
+ *
+ * @param request - function to call the graphql client
+ */
+export class UpdateEmailIntakeAddressMutation extends Request {
+  public constructor(request: LinearRequest) {
+    super(request);
+  }
+
+  /**
+   * Call the UpdateEmailIntakeAddress mutation and return a EmailIntakeAddressPayload
+   *
+   * @param id - required id to pass to updateEmailIntakeAddress
+   * @param input - required input to pass to updateEmailIntakeAddress
+   * @returns parsed response from UpdateEmailIntakeAddressMutation
+   */
+  public async fetch(id: string, input: L.EmailIntakeAddressUpdateInput): LinearFetch<EmailIntakeAddressPayload> {
+    const response = await this._request<
+      L.UpdateEmailIntakeAddressMutation,
+      L.UpdateEmailIntakeAddressMutationVariables
+    >(L.UpdateEmailIntakeAddressDocument, {
+      id,
+      input,
+    });
+    const data = response.emailIntakeAddressUpdate;
+
+    return new EmailIntakeAddressPayload(this._request, data);
   }
 }
 
@@ -23201,6 +23366,46 @@ export class LinearSdk extends Request {
    */
   public updateDocument(id: string, input: L.DocumentUpdateInput): LinearFetch<DocumentPayload> {
     return new UpdateDocumentMutation(this._request).fetch(id, input);
+  }
+  /**
+   * Creates a new email intake address.
+   *
+   * @param input - required input to pass to createEmailIntakeAddress
+   * @returns EmailIntakeAddressPayload
+   */
+  public createEmailIntakeAddress(input: L.EmailIntakeAddressCreateInput): LinearFetch<EmailIntakeAddressPayload> {
+    return new CreateEmailIntakeAddressMutation(this._request).fetch(input);
+  }
+  /**
+   * Deletes an email intake address object.
+   *
+   * @param id - required id to pass to deleteEmailIntakeAddress
+   * @returns DeletePayload
+   */
+  public deleteEmailIntakeAddress(id: string): LinearFetch<DeletePayload> {
+    return new DeleteEmailIntakeAddressMutation(this._request).fetch(id);
+  }
+  /**
+   * Rotates an existing email intake address.
+   *
+   * @param id - required id to pass to emailIntakeAddressRotate
+   * @returns EmailIntakeAddressPayload
+   */
+  public emailIntakeAddressRotate(id: string): LinearFetch<EmailIntakeAddressPayload> {
+    return new EmailIntakeAddressRotateMutation(this._request).fetch(id);
+  }
+  /**
+   * Updates an existing email intake address.
+   *
+   * @param id - required id to pass to updateEmailIntakeAddress
+   * @param input - required input to pass to updateEmailIntakeAddress
+   * @returns EmailIntakeAddressPayload
+   */
+  public updateEmailIntakeAddress(
+    id: string,
+    input: L.EmailIntakeAddressUpdateInput
+  ): LinearFetch<EmailIntakeAddressPayload> {
+    return new UpdateEmailIntakeAddressMutation(this._request).fetch(id, input);
   }
   /**
    * Authenticates a user account via email and authentication token.

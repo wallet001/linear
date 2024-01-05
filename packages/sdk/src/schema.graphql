@@ -11,7 +11,7 @@ type ActorBot {
   A url pointing to the avatar representing this bot.
   """
   avatarUrl: String
-  id: ID!
+  id: ID
   """
   The display name of the bot.
   """
@@ -631,14 +631,6 @@ type AuthApiKeyPayload {
   success: Boolean!
 }
 
-type AuthCreateOrJoinOrganizationResponse {
-  authOrganization: AuthOrganization!
-  authUser: AuthUser!
-  grantDomainAccess: Boolean
-  organization: AuthOrganization!
-  user: AuthUser!
-}
-
 type AuthIntegration {
   """
   The unique identifier of the entity.
@@ -836,6 +828,10 @@ type AuthOrganization {
   """
   scimEnabled: Boolean!
   """
+  The email domain or URL key for the organization.
+  """
+  serviceId: String!
+  """
   The organization's unique URL key.
   """
   urlKey: String!
@@ -843,6 +839,21 @@ type AuthOrganization {
 }
 
 type AuthOrganizationDomain {
+  authType: OrganizationDomainAuthType!
+  claimed: Boolean
+  """
+  The unique identifier of the entity.
+  """
+  id: ID!
+  name: String!
+  organizationId: String!
+  verified: Boolean!
+}
+
+"""
+An invitation to the organization that has been sent via email.
+"""
+type AuthOrganizationInvite {
   """
   The unique identifier of the entity.
   """
@@ -855,13 +866,13 @@ type AuthResolverResponse {
   """
   allowDomainAccess: Boolean
   """
-  Organizations this account has access to, but is not yet a member.
+  List of organizations allowing this user account to join automatically.
   """
   availableOrganizations: [AuthOrganization!]
   """
   Email for the authenticated account.
   """
-  email: String
+  email: String!
   """
   User account ID.
   """
@@ -871,15 +882,15 @@ type AuthResolverResponse {
   """
   lastUsedOrganizationId: String
   """
-  List of organizations this user account is part of but are currently locked because of the current auth service.
+  List of organization available to this user account but locked due to the current auth method.
   """
   lockedOrganizations: [AuthOrganization!]
   """
-  JWT token for authentication of the account.
+  Application token.
   """
-  token: String
+  token: String @deprecated(reason: "Deprecated and not used anymore. Never populated.")
   """
-  Users belonging to this account.
+  List of active users that belong to the user account.
   """
   users: [AuthUser!]!
 }
@@ -920,6 +931,10 @@ type AuthUser {
   Organization the user belongs to.
   """
   organization: AuthOrganization!
+  """
+  User account id the user belongs to.
+  """
+  userAccountId: String!
 }
 
 """
@@ -1220,6 +1235,10 @@ type Comment implements Node {
   """
   projectUpdate: ProjectUpdate
   """
+  The text that this comment references. Only defined for inline comments.
+  """
+  quotedText: String
+  """
   Emoji reaction summary, grouped by emoji type
   """
   reactionData: JSONObject!
@@ -1364,6 +1383,10 @@ input CommentCreateInput {
   The prject update to associate the comment with.
   """
   projectUpdateId: String
+  """
+  The text that this comment references. Only defined for inline comments.
+  """
+  quotedText: String
 }
 
 type CommentEdge {
@@ -1444,6 +1467,10 @@ input CommentUpdateInput {
   The comment content as a Prosemirror document.
   """
   bodyData: JSON
+  """
+  The text that this comment references. Only defined for inline comments.
+  """
+  quotedText: String
   """
   [INTERNAL] The child comment that resolves this thread.
   """
@@ -2873,6 +2900,39 @@ type EmailIntakeAddress implements Node {
   updatedAt: DateTime!
 }
 
+input EmailIntakeAddressCreateInput {
+  """
+  The identifier in UUID v4 format. If none is provided, the backend will generate one.
+  """
+  id: String
+  """
+  The identifier or key of the team this email address will intake issues for.
+  """
+  teamId: String!
+}
+
+type EmailIntakeAddressPayload {
+  """
+  The email address that was created or updated.
+  """
+  emailIntakeAddress: EmailIntakeAddress!
+  """
+  The identifier of the last sync operation.
+  """
+  lastSyncId: Float!
+  """
+  Whether the operation was successful.
+  """
+  success: Boolean!
+}
+
+input EmailIntakeAddressUpdateInput {
+  """
+  Whether the email address is currently enabled. If set to false, the email address will be disabled and no longer accept incoming emails.
+  """
+  enabled: Boolean!
+}
+
 input EmailSubscribeInput {
   """
   [INTERNAL] Email to subscribe.
@@ -3789,7 +3849,7 @@ input GoogleUserAccountAuthInput {
   """
   code: String!
   """
-  An optional invite link for an organization.
+  An optional invite link for an organization used to populate available organizations.
   """
   inviteLink: String
   """
@@ -7010,6 +7070,10 @@ input JiraUpdateInput {
   """
   id: String!
   """
+  Whether to refresh Jira metadata for the integration
+  """
+  updateMetadata: Boolean
+  """
   Whether to refresh Jira Projects for the integration
   """
   updateProjects: Boolean
@@ -7664,6 +7728,46 @@ type Mutation {
     """
     input: DocumentUpdateInput!
   ): DocumentPayload!
+  """
+  Creates a new email intake address.
+  """
+  emailIntakeAddressCreate(
+    """
+    The email intake address object to create.
+    """
+    input: EmailIntakeAddressCreateInput!
+  ): EmailIntakeAddressPayload!
+  """
+  Deletes an email intake address object.
+  """
+  emailIntakeAddressDelete(
+    """
+    The identifier of the email intake address to delete.
+    """
+    id: String!
+  ): DeletePayload!
+  """
+  Rotates an existing email intake address.
+  """
+  emailIntakeAddressRotate(
+    """
+    The identifier of the email intake address.
+    """
+    id: String!
+  ): EmailIntakeAddressPayload!
+  """
+  Updates an existing email intake address.
+  """
+  emailIntakeAddressUpdate(
+    """
+    The identifier of the email intake address.
+    """
+    id: String!
+    """
+    The properties of the email intake address to update.
+    """
+    input: EmailIntakeAddressUpdateInput!
+  ): EmailIntakeAddressPayload!
   """
   [INTERNAL] Subscribes the email to the newsletter.
   """
@@ -14348,7 +14452,7 @@ type Query {
   """
   emoji(
     """
-    The identifier of the emoji to retrieve.
+    The identifier or the name of the emoji to retrieve.
     """
     id: String!
   ): Emoji!
@@ -17608,7 +17712,11 @@ input TeamUpdateInput {
   """
   cycleDuration: Int
   """
-  Whether the first cycle should start in the current or the next week.
+  The date to begin cycles on.
+  """
+  cycleEnabledStartDate: DateTime
+  """
+  [DEPRECATED] Whether the first cycle should start in the current or the next week.
   """
   cycleEnabledStartWeek: String
   """
@@ -18373,6 +18481,10 @@ type UserAccount {
   The time at which the model was archived.
   """
   archivedAt: DateTime
+  """
+  Whether not to send email auth links in the email auth emails.
+  """
+  authTokenLinkDisabled: Boolean!
   """
   The time at which the model was created.
   """
